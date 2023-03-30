@@ -1,0 +1,31 @@
+spin_manifest_version = "1"
+authors = ["Mikkel Mørk Hegnhøj <mikkel@fermyon.com>"]
+description = "Short link redirector"
+name = "redirect"
+trigger = { type = "http", base = "/" }
+version = "0.1.0"
+
+[[component]]
+id = "redirect"
+source = "api/target/wasm32-wasi/release/redirect.wasm"
+key_value_stores = ["default"]
+[component.trigger]
+route = "/api/..."
+[component.build]
+command = "cargo build --target wasm32-wasi --release"
+workdir = "api"
+
+[[component]]
+source = { url = "https://github.com/radu-matei/spin-kv-explorer/releases/download/v0.6.0/spin-kv-explorer.wasm", digest = "sha256:38110bc277a393cdfb1a885a0fd56923d47314b2086399d1e3bbcb6daa1f04ad" }
+id = "kv-explorer"
+key_value_stores = ["default"]
+[component.trigger]
+route = "/internal/kv-explorer/..."
+
+[[component]]
+source = { url = "https://github.com/fermyon/spin-fileserver/releases/download/v0.0.1/spin_static_fs.wasm", digest = "sha256:650376c33a0756b1a52cad7ca670f1126391b79050df0321407da9c741d32375" }
+id = "client"
+files = [ {source = "client", destination = "/" } ]
+[component.trigger]
+route = "/..."
+
