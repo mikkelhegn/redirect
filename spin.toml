@@ -16,13 +16,6 @@ command = "cargo build --target wasm32-wasi --release"
 workdir = "api"
 
 [[component]]
-source = { url = "https://github.com/radu-matei/spin-kv-explorer/releases/download/v0.6.0/spin-kv-explorer.wasm", digest = "sha256:38110bc277a393cdfb1a885a0fd56923d47314b2086399d1e3bbcb6daa1f04ad" }
-id = "kv-explorer"
-key_value_stores = ["default"]
-[component.trigger]
-route = "/internal/kv-explorer/..."
-
-[[component]]
 source = { url = "https://github.com/fermyon/spin-fileserver/releases/download/v0.0.2/spin_static_fs.wasm", digest = "sha256:65456bf4e84cf81b62075e761b2b0afaffaef2d0aeda521b245150f76b96421b" }
 id = "client"
 files = [ {source = "client", destination = "/" } ]
