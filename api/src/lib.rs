@@ -42,7 +42,10 @@ fn handle_redirect(req: Request) -> Result<Response> {
                 &url_entry.short_url,
                 serde_json::to_vec(&url_entry.clone())?,
             )?;
-            (StatusCode::OK, Some(serde_json::to_vec(&url_entry)?.into()))
+            (
+                StatusCode::CREATED,
+                Some(serde_json::to_vec(&url_entry)?.into()),
+            )
         }
         &Method::GET => match req.uri().query() {
             Some(k) => match store.get(k) {
