@@ -2,6 +2,7 @@ use anyhow::Result;
 use http::{Method, StatusCode};
 use rand::{distributions::Alphanumeric, Rng};
 use serde::{Deserialize, Serialize};
+use serde_json;
 use spin_sdk::{
     http::{Request, Response},
     http_component,
@@ -33,6 +34,7 @@ fn handle_redirect(req: Request) -> Result<Response> {
         &Method::POST => {
             let body = req.body().clone().unwrap();
             let url_entry: Link = serde_json::from_slice(&body)?;
+            // Check if name and destination are defined, and reject if not
 
             println!("{:?}", url_entry);
 
@@ -49,6 +51,7 @@ fn handle_redirect(req: Request) -> Result<Response> {
                 Err(error) => return Err(error.into()),
             },
             None => {
+                // Can these be sorted by key?
                 let records: Vec<Link> = store
                     .get_keys()
                     .unwrap()

@@ -6,8 +6,8 @@ trigger = { type = "http", base = "/" }
 version = "0.1.0"
 
 [[component]]
-id = "redirect"
-source = "api/target/wasm32-wasi/release/redirect.wasm"
+id = "api"
+source = "api/target/wasm32-wasi/release/api.wasm"
 key_value_stores = ["default"]
 [component.trigger]
 route = "/api/..."
@@ -23,9 +23,19 @@ key_value_stores = ["default"]
 route = "/internal/kv-explorer/..."
 
 [[component]]
-source = { url = "https://github.com/fermyon/spin-fileserver/releases/download/v0.0.1/spin_static_fs.wasm", digest = "sha256:650376c33a0756b1a52cad7ca670f1126391b79050df0321407da9c741d32375" }
+source = { url = "https://github.com/fermyon/spin-fileserver/releases/download/v0.0.2/spin_static_fs.wasm", digest = "sha256:65456bf4e84cf81b62075e761b2b0afaffaef2d0aeda521b245150f76b96421b" }
 id = "client"
 files = [ {source = "client", destination = "/" } ]
 [component.trigger]
-route = "/..."
+route = "/admin/..."
 
+[[component]]
+id = "redirect"
+source = "redirect/target/wasm32-wasi/release/redirect.wasm"
+key_value_stores = ["default"]
+[component.trigger]
+route = "/..."
+[component.build]
+command = "cargo build --target wasm32-wasi --release"
+workdir = "redirect"
+watch = ["src/**/*.rs", "Cargo.toml", "spin.toml"]
