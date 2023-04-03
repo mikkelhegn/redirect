@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<HTML lang="en">
 
 <head>
 	<title>Redirects</title>
@@ -11,62 +11,62 @@
 
 	<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.2.1/css/fontawesome.min.css"
 		integrity="sha384-QYIZto+st3yW+o8+5OHfT6S482Zsvz2WfOzpFSXMF9zqeLcFV0/wlZpMtyFcZALm" crossorigin="anonymous">
-
 </head>
 
 <body>
-
-	<div id="grid-container">
-		<div id="h-container">
-			<h1>Redirects - powered by Spin and WebAssembly</h1>
+	<div class="container-fluid">
+		<div class="row justify-content-md-center">
+			<div class="col col-lg-10">
+				<h1 class="text-center">Redirects - powered by Spin and WebAssembly</h1>
+				<table class="table table-striped table-dark align-middle" id="dataTable">
+					<thead class="thead-dark align-middle">
+						<tr>
+							<th>Name</th>
+							<th>Destination</th>
+							<th>Short link</th>
+							<th>
+								<button type="button" id="add-button" class="btn btn-success edit-btn" data-bs-toggle="modal"
+									data-bs-target="#editModal">
+									Add
+								</button>
+							</th>
+						</tr>
+					</thead>
+					<tbody>
+					</tbody>
+				</table>
+			</div>
 		</div>
-		<!-- Nav -->
-		<div id="n-container">
-			<nav id="navbar">
-				<header></header>
-			</nav>
-		</div>
-	</div>
 
-	<div id="m-container">
-		<main id="main-doc">
-			<section class="main-section" id="kv-explorer">
-
-				<div class="row">
-					<div class="col-md-9">
-
-						<div class="table-wrap">
-							<div class="row mb-2 add-kv">
-								<div class="col-md-6">
-									<input id="keyInput" type="text" class="form-control" placeholder="Key">
-								</div>
-								<div class="col-md-5">
-									<input id="valueInput" type="text" class="form-control" placeholder="Value">
-								</div>
-								<div class="col-md-1">
-									<button id="add" class="btn btn-outline-primary" title="Add"><i
-											class="fa-sharp fa-solid fa-plus"></i></button>
-								</div>
+		<div class="modal fade" id="editModal" tabindex="-1" aria-labelledby="editModalLabel" aria-hidden="true">
+			<div class="modal-dialog">
+				<div class="modal-content">
+					<div class="modal-body">
+						<form id="editForm" onsubmit="save_item()">
+							<div class="form-outline mb-4">
+								<label class="form-label" for="editName">Name</label>
+								<input type="text" id="editName" class="form-control" required />
 							</div>
-
-							<table class="table table-striped table-dark" id="kv">
-								<thead class="thead-dark">
-									<tr>
-										<th>Name</th>
-										<th>URL Destination</th>
-										<th>URL Redirect</th>
-									</tr>
-								</thead>
-								<tbody>
-								</tbody>
-							</table>
-
-						</div>
-
+							<div class="form-outline mb-4">
+								<label class="form-label" for="editDestination">Destination</label>
+								<input type="url" id="editDestination" class="form-control" required="true" />
+							</div>
+							<div class="form-outline mb-4">
+								<label class="form-label" id="editShortUrl">
+								</label>
+							</div>
+					</div>
+					<div class="modal-footer">
+						<button type="button" class="btn btn-dark" data-bs-dismiss="modal" aria-label="Close">
+							Close
+						</button>
+						<button type="submit" class="btn btn-success" aria-label="Save">
+							Save
+						</button>
 					</div>
 				</div>
-
-			</section>
+			</div>
+		</div>
 	</div>
 
 	<script src="https://cdn.jsdelivr.net/npm/jquery@3.6.4/dist/jquery.min.js"
@@ -77,155 +77,12 @@
 		integrity="sha384-kenU1KFdBIe4zVF0s0G1M5b4hcpxyD9F7jL+jjXkk+Q2h455rYXK/7HAuoJl+0I4"
 		crossorigin="anonymous"></script>
 
+	<script src="/script.js"></script>
+
 	<script>
-
-		var redirects;
-		get_data();
-
-		function get_data() {
-			fetch("/api")
-				.then(res => res.json())
-				.then(data => {
-					redirects = data;
-				})
-				.then(() => {
-					build_table(redirects);
-				});
-		}
-
-		function build_table(items) {
-			$("#kv > tbody").empty();
-			items.forEach((item) => {
-				$("#kv > tbody:first").append(`
-				<tr id="${item.name}">  
-					<td>
-						${item.name}
-					</td>
-					<td>
-						${item.url}
-					</td>
-					<td>
-						<a href="${location.origin + '?' + item.short_url}">${location.origin + '?' + item.short_url}
-					</td> 
-					<td>
-						<a href="#" id="${item.short_url}_edit" class="btn btn-success edit-btn" data-key="${item.short_url}">
-							Edit
-						</a>
-						<a href="#" id="${item.short_url}_delete" class="btn btn-danger delete-btn" data-key="${item.short_url}">
-							Delete
-						</a>
-					</td>
-				</tr>
-			`);
-
-				$(`#${item.short_url}_delete`).click(function () {
-					var key = $(this).data("key");
-					fetch(`/api?${key}`, {
-						method: 'DELETE',
-					})
-						.then(() => {
-							get_data();
-						})
-				});
-
-				$(`#${item.short_url}_edit`).click(function () {
-					var key = $(this).data("key");
-					fetch(`/api?${key}`)
-						.then((response) => response.json())
-						.then((item) => {
-							console.log(item)
-							$("#editName").val(item.name);
-							$("#editDestination").val(item.url);
-							$("#editShortUrl a").text(`${location.origin + '?' + item.short_url}`);
-							$("#editShortUrl a").prop("href", `${location.origin + '?' + item.short_url}`);
-							$("#editShortUrl a").attr("data", item.short_url);
-							$("#edit").modal("show");
-						});
-				});
-
-			});
-		}
-
-		function save_item() {
-			var data = {
-				name: $("#editName").val(),
-				url: $("#editDestination").val(),
-				short_url: $("#editShortUrl a").attr("data")
-			}
-			console.log(data);
-			fetch('/api', {
-				method: 'POST',
-				body: JSON.stringify(data)
-			})
-				.then(res => {
-					if (res.status != 200) {throw new Error("Failed to submit data");}
-					return res.text();
-				})
-				.then(get_data())
-			return false;
-		}
-
-		// $("#add").click(function () {
-		// 	let key = $("#keyInput").val();
-		// 	let value = $("#valueInput").val();
-		// 	if (key.length == 0) {
-		// 		alert("Key must not be empty");
-		// 		return
-		// 	}
-
-		// 	let data = {
-		// 		key: key,
-		// 		value: value
-		// 	};
-		// 	fetch("/internal/kv-explorer/api/stores/default", {
-		// 		method: 'POST',
-		// 		headers: {
-		// 			'Content-Type': 'application/json'
-		// 		},
-		// 		body: JSON.stringify(data)
-		// 	})
-		// 		.then(() => {
-		// 			insert(key)
-		// 			$("#keyInput").val("");
-		// 			$("#valueInput").val("");
-		// 		})
-		// });
+		init();
 	</script>
+
 </body>
 
-<!-- Modal for editing and entering new redirects -->
-<div class="modal fade" id="edit" tabindex="-1" aria-labelledby="editModalLabel" aria-hidden="true">
-	<div class="modal-dialog">
-		<div class="modal-content">
-			<div class="modal-header">
-				<h5 class="modal-title" id="editModalLabel">Edit Redirect</h5>
-			</div>
-			<div class="modal-body">
-				<form id="editForm" onsubmit="save_item()">
-					<div class="form-outline mb-4">
-						<label class="form-label" for="editName">Name</label>
-						<input type="text" id="editName" class="form-control" required="true" />
-					</div>
-					<div class="form-outline mb-4">
-						<label class="form-label" for="editDestination">Destination</label>
-						<input type="url" id="editDestination" class="form-control" required="true" />
-					</div>
-					<div class="form-outline mb-4">
-						<label class="form-label" id="editShortUrl">
-							<a href=""></a>
-						</label>
-					</div>
-			</div>
-			<div class="modal-footer">
-				<button type="button" class="btn btn-secondary" data-bs-dismiss="modal" aria-label="Close">
-					Close
-				</button>
-				<button type="submit" class="btn btn-primaty" aria-label="Save" data-bs-dismiss="modal">
-					Save
-				</button>
-			</div>
-		</div>
-	</div>
-</div>
-
-</html>
+</HTML>
