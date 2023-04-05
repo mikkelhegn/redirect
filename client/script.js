@@ -16,6 +16,7 @@ function get_data() {
 		});
 }
 
+
 function build_table(items) {
 	$("#dataTable > tbody").empty();
 	// Sort the list before adding to the table
@@ -38,10 +39,16 @@ function build_table(items) {
 					<a href="#" id="${item.short_url}_delete" class="btn btn-danger delete-btn" data-key="${item.short_url}">
 						Delete
 					</a>
-				</td>
+<!--
+								<a href="#" id="${item.short_url}_qr" class="btn btn-secondary" data-key="${location.origin + '?' + item.short_url}">
+						QR
+					</a>
+-->
+							</td>
 			</tr>
 		`);
-			$(`#${item.short_url}_delete`).click(function () {
+	
+		$(`#${item.short_url}_delete`).click(function () {
 			var key = $(this).data("key");
 			fetch(`/api?${key}`, {
 				method: 'DELETE',
@@ -50,7 +57,8 @@ function build_table(items) {
 					get_data();
 				})
 		});
-			$(`#${item.short_url}_edit`).click(function () {
+			
+		$(`#${item.short_url}_edit`).click(function () {
 			var key = $(this).data("key");
 			fetch(`/api?${key}`)
 				.then((response) => response.json())
@@ -64,7 +72,19 @@ function build_table(items) {
 					$("#editModal").modal("show");
 				});
 		});
+			
+		$(`#${item.short_url}_qr`).click(function () {
+			var key = $(this).data("key");
+      const encoded_url = encodeURIComponent(key);
+ 	    fetch(`/qr?${encoded_url}`)
+		  	.then((res) => res.text())
+		  	.then((text) => {
+					$("#qrModalBody").empty();
+					$("#qrModalBody").append(text);
+					$("#qrModal").modal("show");
+				});
 		});
+	});
 }
 
 function save_item() {
@@ -78,7 +98,7 @@ function save_item() {
 		body: JSON.stringify(data)
 	})
 		.then(res => {
-			if (res.status != 200) {
+			if (res.status != 201) {
 				throw new Error("Failed to submit data");
 			} else {
 				get_data();
