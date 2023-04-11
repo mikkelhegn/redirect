@@ -39,16 +39,14 @@ function build_table(items) {
 					<a href="#" id="${item.short_url}_delete" class="btn btn-danger delete-btn" data-key="${item.short_url}">
 						Delete
 					</a>
-<!--
 								<a href="#" id="${item.short_url}_qr" class="btn btn-secondary" data-key="${location.origin + '?' + item.short_url}">
 						QR
 					</a>
--->
-							</td>
+				</td>
 			</tr>
 		`);
-	
-		$(`#${item.short_url}_delete`).click(function () {
+
+		$(`#${item.short_url}_delete`).click(function() {
 			var key = $(this).data("key");
 			fetch(`/api?${key}`, {
 				method: 'DELETE',
@@ -57,8 +55,8 @@ function build_table(items) {
 					get_data();
 				})
 		});
-			
-		$(`#${item.short_url}_edit`).click(function () {
+
+		$(`#${item.short_url}_edit`).click(function() {
 			var key = $(this).data("key");
 			fetch(`/api?${key}`)
 				.then((response) => response.json())
@@ -72,13 +70,13 @@ function build_table(items) {
 					$("#editModal").modal("show");
 				});
 		});
-			
-		$(`#${item.short_url}_qr`).click(function () {
+
+		$(`#${item.short_url}_qr`).click(function() {
 			var key = $(this).data("key");
-      const encoded_url = encodeURIComponent(key);
- 	    fetch(`/qr?${encoded_url}`)
-		  	.then((res) => res.text())
-		  	.then((text) => {
+			const encoded_url = encodeURIComponent(key);
+			fetch(`/qr?${encoded_url}`)
+				.then((res) => res.text())
+				.then((text) => {
 					$("#qrModalBody").empty();
 					$("#qrModalBody").append(text);
 					$("#qrModal").modal("show");
@@ -108,7 +106,7 @@ function save_item() {
 }
 
 function add_modal_events() {
-	$('#editModal')[0].addEventListener('hidden.bs.modal', function () {
+	$('#editModal')[0].addEventListener('hidden.bs.modal', function() {
 		if ($('#editShortUrl a').length > 0) {
 			$('#editShortUrl a')[0].remove();
 		}
