@@ -11,6 +11,7 @@ crate-type = [ "cdylib" ]
 [dependencies]
 # Useful crate to handle errors.
 anyhow = "1"
+base64 = "0.21.0"
 # Crate to simplify working with bytes.
 bytes = "1"
 # General-purpose crate with common HTTP types.
