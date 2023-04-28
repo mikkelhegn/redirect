@@ -1,4 +1,5 @@
-use anyhow::Result;
+use anyhow::{Result, anyhow, Context};
+use base64::{engine, alphabet, Engine};
 use http::{Method, StatusCode};
 use rand::{distributions::Alphanumeric, Rng};
 use serde::{Deserialize, Serialize};
@@ -6,7 +7,7 @@ use serde_json;
 use spin_sdk::{
     http::{Request, Response},
     http_component,
-    key_value::{Error, Store},
+    key_value::{Error as KeyValueError, Store},
 };
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -30,6 +31,19 @@ fn rand_string() -> String {
 fn handle_redirect(req: Request) -> Result<Response> {
     let store = Store::open_default()?;
 
+    // Authorization guard
+    let creds = get_credentials(&store)?;
+    match authorize(req.headers(), creds) {
+        Ok(_) => (),
+        Err(error) => {
+            println!("{:?}", error);
+            return Ok(http::Response::builder()
+                .status(StatusCode::UNAUTHORIZED)
+                .header("WWW-Authenticate", "Basic realm=\"admin\", charset=\"UTF-8\"")
+                .body(Some(error.to_string().into()))?)
+        }
+    }
+
     let (status, body) = match req.method() {
         &Method::POST => {
             let body = req.body().clone().unwrap();
@@ -50,7 +64,7 @@ fn handle_redirect(req: Request) -> Result<Response> {
         &Method::GET => match req.uri().query() {
             Some(k) => match store.get(k) {
                 Ok(link) => (StatusCode::OK, Some(link.into())),
-                Err(Error::NoSuchKey) => (StatusCode::NOT_FOUND, None),
+                Err(KeyValueError::NoSuchKey) => (StatusCode::NOT_FOUND, None),
                 Err(error) => return Err(error.into()),
             },
             None => {
@@ -59,6 +73,7 @@ fn handle_redirect(req: Request) -> Result<Response> {
                     .get_keys()
                     .unwrap()
                     .iter()
+                    .filter(|k| k != &"credentials")
                     .map(|k| store.get(k).unwrap())
                     .map(|r| serde_json::from_slice(&r).unwrap())
                     .collect();
@@ -76,4 +91,68 @@ fn handle_redirect(req: Request) -> Result<Response> {
     };
 
     Ok(http::Response::builder().status(status).body(body)?)
+}
+
+// Authorization
+const BASE64_CONFIG: engine::GeneralPurposeConfig = engine::GeneralPurposeConfig::new();
+const BASE64_ENGINE: engine::GeneralPurpose =
+    engine::GeneralPurpose::new(&alphabet::URL_SAFE, BASE64_CONFIG);
+
+fn authorize(headers: &http::HeaderMap, expected_creds: String) -> Result<()> {
+    // decode the auth header
+    let auth_header = headers.get("Authorization")
+        .ok_or_else(|| anyhow!("No Authorization header"))?
+        .to_str()
+        .context("Authorization decoding error: could not convert to utf8")?
+        .split(" ")
+        .collect::<Vec<&str>>();
+    if auth_header.len() != 2 {
+        return Err(anyhow!("Authorization header is not in the correct format"));
+    }
+
+    // only accept basic auth
+    let scheme = auth_header[0].to_lowercase();
+    if scheme != "basic" {
+        return Err(anyhow!("Unsupported Authorization scheme"));
+    }
+
+    // decode the auth value into username and password
+    let creds = BASE64_ENGINE.decode(auth_header[1])
+        .context("Authorization decoding error: could not base64 decode")?;
+    let creds = String::from_utf8(creds)
+        .context("Authorization decoding error: could not convert to utf8")?;
+
+    // check the username and password
+    if creds != expected_creds {
+        return Err(anyhow!("Invalid username or password"));
+    }
+    Ok(())
+}
+
+fn get_credentials(store: &Store) -> Result<String> {
+    let creds = match store.get("credentials") {
+        Ok(creds) => {
+            String::from_utf8(creds)
+                .context("Failed to decode credentials from key-value")?
+        },
+        Err(KeyValueError::NoSuchKey) => {
+            // generate and persist credentials similar to the kv-explorer
+            // theoretically this is compatible with the kv-explorer
+            let username = rand_string();
+            let password = rand_string();
+            let creds = format!("{}:{}", username, password);
+            store.set("credentials", creds.as_bytes())
+                .context("Failed to save the generated credentials in key-value store.")?;
+
+                // log the generated credentials for the user
+            // can also set via spin deploy --key-value 'credentials=...'
+            println!("Generated admin username: {}", username);
+            println!("Generated admin password: {}", password);
+            println!("This is a randomly generated username and password pair. To change it, please add a `credentials` key in the default store with the value `username:password`. If you delete the credential pair, the next request will generate a new random set.");
+
+            creds
+        },
+        Err(error) => return Err(error.into()),
+    };
+    Ok(creds)
 }
