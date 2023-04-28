@@ -69,7 +69,7 @@ fn handle_redirect(req: Request) -> Result<Response> {
             },
             None => {
                 // Can these be sorted by key?
-                let records: Vec<Link> = store
+                let mut records: Vec<Link> = store
                     .get_keys()
                     .unwrap()
                     .iter()
@@ -77,6 +77,7 @@ fn handle_redirect(req: Request) -> Result<Response> {
                     .map(|k| store.get(k).unwrap())
                     .map(|r| serde_json::from_slice(&r).unwrap())
                     .collect();
+                records.sort_unstable_by(|e1, e2| e1.name.to_lowercase().cmp(&e2.name.to_lowercase()));
                 (StatusCode::OK, Some(serde_json::to_vec(&records)?.into()))
             }
         },
