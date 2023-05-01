@@ -33,7 +33,14 @@ fn handle_redirect(req: Request) -> Result<Response> {
                 Err(Error::NoSuchKey) => StatusCode::NOT_FOUND,
                 Err(error) => return Err(error.into()),
             },
-            None => StatusCode::NOT_FOUND,
+            None => {
+                if req.uri().path() == "/favicon.ico" {
+                    StatusCode::NOT_FOUND
+                } else {
+                    location_header = "/admin/".to_string();
+                    StatusCode::TEMPORARY_REDIRECT
+                }
+            },
         },
         _ => StatusCode::METHOD_NOT_ALLOWED,
     };
