@@ -1,8 +1,8 @@
 spin_manifest_version = "1"
 authors = ["Mikkel Mørk Hegnhøj <mikkel@fermyon.com>"]
 description = "Short link redirector"
-name = "redirect"
-trigger = { type = "http", base = "/" }
+name = "my-redirect"
+trigger = {type = "http", base = "/" }
 version = "0.1.0"
 
 [[component]]
@@ -14,6 +14,7 @@ route = "/api/..."
 [component.build]
 command = "cargo build --target wasm32-wasi --release"
 workdir = "api"
+watch = [ "Cargo.toml", "src/lib.rs" ]
 
 [[component]]
 source = { url = "https://github.com/fermyon/spin-fileserver/releases/download/v0.0.2/spin_static_fs.wasm", digest = "sha256:65456bf4e84cf81b62075e761b2b0afaffaef2d0aeda521b245150f76b96421b" }
@@ -31,6 +32,7 @@ route = "/..."
 [component.build]
 command = "cargo build --target wasm32-wasi --release"
 workdir = "redirect"
+watch = [ "Cargo.toml", "src/lib.rs" ]
 
 [[component]]
 source = { url = "https://github.com/mikkelhegn/spin-qr-generator/releases/download/v0.0.1/spin_qr_generator.wasm", digest = "sha256:33d922ffe15e07a230af314ba6b7d781ed72b7de895982132ef923b3424f094f" }

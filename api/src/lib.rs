@@ -9,6 +9,8 @@ use spin_sdk::{
     http_component,
     key_value::{Error as KeyValueError, Store},
 };
+use log::{error, info};
+use env_logger;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 struct Link {
@@ -29,6 +31,12 @@ fn rand_string() -> String {
 /// A simple Spin HTTP component.
 #[http_component]
 fn handle_redirect(req: Request) -> Result<Response> {
+    env_logger::builder()
+        .filter_level(log::LevelFilter::Trace)
+        .init();
+    
+    info!("Received {} request at {}", req.method().to_string(), req.uri().to_string());
+
     let store = Store::open_default()?;
 
     // Authorization guard
@@ -36,7 +44,7 @@ fn handle_redirect(req: Request) -> Result<Response> {
     match authorize(req.headers(), creds) {
         Ok(_) => (),
         Err(error) => {
-            println!("{:?}", error);
+            error!("{:?}", error);
             return Ok(http::Response::builder()
                 .status(StatusCode::UNAUTHORIZED)
                 .header("WWW-Authenticate", "Basic realm=\"admin\", charset=\"UTF-8\"")
@@ -47,19 +55,26 @@ fn handle_redirect(req: Request) -> Result<Response> {
     let (status, body) = match req.method() {
         &Method::POST => {
             let body = req.body().clone().unwrap();
-            let url_entry: Link = serde_json::from_slice(&body)?;
-            // Check if name and destination are defined, and reject if not
-
-            println!("{:?}", url_entry);
-
-            store.set(
-                &url_entry.short_url,
-                serde_json::to_vec(&url_entry.clone())?,
-            )?;
-            (
-                StatusCode::CREATED,
-                Some(serde_json::to_vec(&url_entry)?.into()),
-            )
+            match serde_json::from_slice::<Link>(&body) {
+                Ok(url_entry) => {
+                    store.set(
+                        &url_entry.short_url,
+                        serde_json::to_vec(&url_entry.clone())?,
+                    )?;
+                    info!{"Created new entry for {:?}", url_entry};
+                    (
+                        StatusCode::CREATED,
+                        Some(serde_json::to_vec(&url_entry)?.into()),
+                    )
+                },
+                Err(error) => {
+                    error!(
+                        "Error \"{}\" while trying to parse to following body: {}",
+                        error, String::from_utf8_lossy(&body)
+                    );
+                    (StatusCode::BAD_REQUEST, None)
+                },
+            }
         }
         &Method::GET => match req.uri().query() {
             Some(k) => match store.get(k) {
@@ -68,12 +83,12 @@ fn handle_redirect(req: Request) -> Result<Response> {
                 Err(error) => return Err(error.into()),
             },
             None => {
-                // Can these be sorted by key?
                 let mut records: Vec<Link> = store
                     .get_keys()
                     .unwrap()
                     .iter()
                     .filter(|k| k != &"credentials")
+                    .filter(|k| k != &"kv-credentials")
                     .map(|k| store.get(k).unwrap())
                     .map(|r| serde_json::from_slice(&r).unwrap())
                     .collect();
@@ -147,9 +162,9 @@ fn get_credentials(store: &Store) -> Result<String> {
 
                 // log the generated credentials for the user
             // can also set via spin deploy --key-value 'credentials=...'
-            println!("Generated admin username: {}", username);
-            println!("Generated admin password: {}", password);
-            println!("This is a randomly generated username and password pair. To change it, please add a `credentials` key in the default store with the value `username:password`. If you delete the credential pair, the next request will generate a new random set.");
+            info!("Generated admin username: {}", username);
+            info!("Generated admin password: {}", password);
+            info!("This is a randomly generated username and password pair. To change it, please add a `credentials` key in the default store with the value `username:password`. If you delete the credential pair, the next request will generate a new random set.");
 
             creds
         },
